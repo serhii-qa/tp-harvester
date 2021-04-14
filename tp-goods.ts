@@ -9,7 +9,7 @@ const launchOpt = {
 
 const goodsResultData = {};
 const menuLinks = [];
-const baseURL = ''; // env clear  // await page.waitForLoadState('load');
+const baseURL = ''; // env clear  // await page.waitForLoadState('load'); 'domcontentloaded'
 
 
 const contentParsing = $ => {
@@ -27,6 +27,7 @@ const contentParsing = $ => {
     context = await browser.newContext();
     page = await context.newPage();
     await page.goto(baseURL);
+    await page.waitForLoadState('domcontentloaded');
 
     // create an array of menu links for looping
     let menuDom = await page.innerHTML('#collapseCatalogMenu');
@@ -36,13 +37,13 @@ const contentParsing = $ => {
         menuLinks.push( $(el).attr('href') );
     })
 
-    console.log(menuLinks);
+    console.log(`Total main menu links: ${menuLinks.length}`);
     console.log('>>> Next Step:')
 
     // watching for response status
     page.on('response',  response => {
         if ( response.status() !== 200 ) {
-            console.log( response.status() )
+            console.log( `${response.status()} ` );
         }
     });
 
@@ -50,15 +51,42 @@ const contentParsing = $ => {
     //for (let i = 0; i < menuLinks.length; i++) {
     for (let i = 0; i < menuLinks.length; i++) {
         await page.goto(menuLinks[i]);
-        const $ = cheerio.load(await page.innerHTML('#content'))
-        const totalPages = await $('div[class="pagination"]').attr('data-totalpages')
+        await page.waitForLoadState('domcontentloaded');
+        const $ = cheerio.load(await page.innerHTML('#content'));
+        const totalPages = await $('div[class="pagination"]').attr('data-totalpages');
         console.log(`# ${i+1} pages = ${await totalPages} <<< opened: ${await page.title()}`);
         await contentParsing($);
+
+        if ( totalPages - 1 ) {
+                const tempUrl = await page.url();
+                let paginationPageUrl;
+                try {
+                    for (let i = 1; i < totalPages; i++) {
+                        paginationPageUrl = `${tempUrl}P${i}00`;
+                        console.log(`+--- subpage ${i+1} of ${await page.title()} ${paginationPageUrl}`); // +++
+                        await page.goto(paginationPageUrl);
+                        await page.waitForLoadState('domcontentloaded');
+                        const $ = cheerio.load(await page.innerHTML('#content'));
+                        await contentParsing($);
+                    }
+                } catch (err) {
+                    console.log(err);
+                }
+        }
     }
 
-
     //console.log(goodsResultData)
-    console.log(Object.keys(goodsResultData).length)
+    console.log( `Total added goods quantity: ${Object.keys(goodsResultData).length}` );
+
+    let goodsResultDataArr = []
+
+    for (let key in goodsResultData) {
+        goodsResultDataArr.push(key)
+    }
+
+    const goodsResultDataSet = new Set(goodsResultDataArr)
+
+    console.log(goodsResultDataSet.size)
 
     //console.log(`123456`, $('.title.hidden-sm.hidden-md.hidden-lg').html() );
 
