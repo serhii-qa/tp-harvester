@@ -2,10 +2,10 @@
   "name": "play",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "tp-goods.ts",
   "scripts": {
     "test": "jest",
-    "help_me": "node goods.ts"
+    "start": "node tp-goods.ts"
   },
   "author": "",
   "license": "ISC",

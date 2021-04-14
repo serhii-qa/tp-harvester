@@ -3,81 +3,90 @@ const cheerio = require('cheerio');
 
 let browser, page, context;
 const launchOpt = {
-    headless: false,
+    headless: true,
     slowMo: 0,
 };
 
-const baseURL = ''; // env clear
-/// await page.waitForLoadState('load');
+const goodsResultData = {};
+const menuLinks = [];
+const baseURL = ''; // env clear  // await page.waitForLoadState('load');
+
+
+const contentParsing = $ => {
+    $('.title.hidden-sm.hidden-md.hidden-lg').each( (iter, el) => {
+        //console.log(`loop>>>` ,  $(el).text() );
+        goodsResultData[$(el).text()] =  $(`.title.hidden-sm.hidden-md.hidden-lg > a`).attr('href');
+    })
+}
+
 
 (async () => {
-    console.time('run')
+    console.time('run');
 
-    browser = await chromium.launch(launchOpt);
+    browser = await chromium.launch( launchOpt );
     context = await browser.newContext();
     page = await context.newPage();
     await page.goto(baseURL);
 
-    // page.on('request', (request) => {
-    //     console.log('>>', request.method(), request.url());
-    // });
-    // page.on('response', (response) => {
-    //     console.log('<<', response.status(), response.url());
-    //     console.log('data:\n');
-    // });
+    // create an array of menu links for looping
+    let menuDom = await page.innerHTML('#collapseCatalogMenu');
+    let $ = await cheerio.load(menuDom);
 
-    let data = await page.innerHTML('#collapseCatalogMenu');
-    let $ = await cheerio.load(data);
-
-    let menuLinks = [];
-    $( 'li :not(:has(ul)) > a').each((i, el) => {
+    $( 'li :not(:has(ul)) > a' ).each( (iter, el) => {
         menuLinks.push( $(el).attr('href') );
     })
-    console.log(menuLinks);
 
+    console.log(menuLinks);
     console.log('>>> Next Step:')
 
-    await page.goto( `` ) //env clear
-
-    //await page.click('div[class="button-global-more"] span[class="text"]')
-    $ = cheerio.load(await page.innerHTML('body'))
-    const paginationPages = await $('div[class="pagination"]').attr('data-totalpages')
-    console.log( `Pagination pages Pages = ${await paginationPages}` )
-
-    // div[class='items-container']
-
-
-
-
-
-
-    if ( await paginationPages > 1  ) {
-
-        try {
-            for (let i = 1; i < paginationPages; i++) {
-                let url = page.url();
-                console.log(url + `P${i}00`)
-
-                //await page.click('div[class="button-global-more"] span[class="text"]')
-                console.log(`Page = ${i+1}`);
-
-                let $ = cheerio.load(await page.innerHTML('body'))
-                console.log($.html())
-
-            }
-        } catch (err) {
-            console.log(err)
+    // watching for response status
+    page.on('response',  response => {
+        if ( response.status() !== 200 ) {
+            console.log( response.status() )
         }
+    });
 
+    // running
+    //for (let i = 0; i < menuLinks.length; i++) {
+    for (let i = 0; i < menuLinks.length; i++) {
+        await page.goto(menuLinks[i]);
+        const $ = cheerio.load(await page.innerHTML('#content'))
+        const totalPages = await $('div[class="pagination"]').attr('data-totalpages')
+        console.log(`# ${i+1} pages = ${await totalPages} <<< opened: ${await page.title()}`);
+        await contentParsing($);
     }
 
-    console.log( await $('.item-container.clearfix').html() )
+
+    //console.log(goodsResultData)
+    console.log(Object.keys(goodsResultData).length)
+
+    //console.log(`123456`, $('.title.hidden-sm.hidden-md.hidden-lg').html() );
 
 
-    $ = cheerio.load(await page.innerHTML('body'))
-    console.log(
-        await $('div[class="button-global-more"]').attr('style') //????
-    );
+
+
+    // // todo pagination pages url generator
+    // if ( await hasPagination(urllll) > 1  ) {
+    //     const firstPageUrl = page.url();
+    //
+    //     try {
+    //         for (let i = 1; i < 2; i++) {
+    //             //console.log(urlPaginationPage + `P${i}00`)
+    //            // console.log(`>>> Page = ${i+1}`);
+    //             let $ = cheerio.load(await page.innerHTML('#content'))
+    //             //console.log($.html())
+    //
+    //         }
+    //     } catch (err) {
+    //         console.log(err)
+    //     }
+    //
+    // }
+
+
+
+
+    // console.log( await $('.item-container.clearfix').html() )
 
 
 
@@ -96,8 +105,8 @@ const baseURL = ''; // env clear
 
 
 
-    //await context.close();
-    //await browser.close();
+    await context.close();
+    await browser.close();
 
     await console.timeEnd('run')
 })();
