@@ -26,6 +26,12 @@ const contentParsing = $ => {
     browser = await chromium.launch( launchOpt );
     context = await browser.newContext();
     page = await context.newPage();
+
+    // traffic-decrease
+    await page.route('**/*', route => {
+        return route.request().resourceType() !== 'document' ? route.abort() : route.continue()
+    });
+
     await page.goto(baseURL);
     await page.waitForLoadState('domcontentloaded');
 
@@ -38,7 +44,7 @@ const contentParsing = $ => {
     })
 
     console.log(`Total main menu links: ${menuLinks.length}`);
-    console.log('>>> Next Step:')
+    console.log('>>> Next Step:');
 
     // watching for response status
     page.on('response',  response => {
@@ -48,8 +54,7 @@ const contentParsing = $ => {
     });
 
     // running
-    //for (let i = 0; i < menuLinks.length; i++) {
-    for (let i = 0; i < menuLinks.length; i++) {
+    for (let i = 0; i < menuLinks.length; i++) {  // ; menuLinks.length;
         await page.goto(menuLinks[i]);
         await page.waitForLoadState('domcontentloaded');
         const $ = cheerio.load(await page.innerHTML('#content'));
@@ -79,19 +84,15 @@ const contentParsing = $ => {
     console.log( `Total added goods quantity: ${Object.keys(goodsResultData).length}` );
 
     let goodsResultDataArr = []
-
     for (let key in goodsResultData) {
-        goodsResultDataArr.push(key)
+        goodsResultDataArr.push(key);
     }
 
-    const goodsResultDataSet = new Set(goodsResultDataArr)
-
-    console.log(goodsResultDataSet.size)
+    const goodsResultDataSet = new Set(goodsResultDataArr);
+    console.log(`Total unique positions: ${goodsResultDataSet.size}`);
+    console.log(`Completed`, Object.keys(goodsResultData).length === goodsResultDataSet.size );
 
     //console.log(`123456`, $('.title.hidden-sm.hidden-md.hidden-lg').html() );
-
-
-
 
     // // todo pagination pages url generator
     // if ( await hasPagination(urllll) > 1  ) {
@@ -111,12 +112,7 @@ const contentParsing = $ => {
     //
     // }
 
-
-
-
     // console.log( await $('.item-container.clearfix').html() )
-
-
 
     /////////////////////////
     //flood
@@ -131,11 +127,9 @@ const contentParsing = $ => {
     // }
     //
 
-
-
     await context.close();
     await browser.close();
 
-    await console.timeEnd('run')
+    await console.timeEnd('run');
 })();
 

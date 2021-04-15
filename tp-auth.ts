@@ -20,10 +20,9 @@ const loginData = {
 
     await page.waitForTimeout(1000);
 
-    console.log(await page.url())
-    console.log(await page.title())
+    console.log(await page.url());
+    console.log(await page.title());
 
-    await page.screenshot({path: `./`}); // err
     await context.close();
     await browser.close();
 })();
