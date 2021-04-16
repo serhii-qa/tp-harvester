@@ -2,8 +2,8 @@ const { chromium } = require('playwright');
 
 (async () => {
     const browser = await chromium.launch( {
-        headless: true,
-        slowMo: 0,
+        headless: false,
+        slowMo: 1000,
     } );
     const page = await browser.newPage();
     await page.setViewportSize( {
